@@ -25,7 +25,7 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         ARInit()
-        setUpFountionViews()
+        setUpFunctionViews()
         let labFocus = UILabel()
         labFocus.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
         labFocus.textAlignment = .center
@@ -63,7 +63,7 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
         arSCNView.addGestureRecognizer(UITapGestureRecognizer.init(target: self, action: #selector(handleTap(gesture:))))
     }
     
-    func setUpFountionViews() {
+    func setUpFunctionViews() {
         //分析过程窗口
         labAnalytics.backgroundColor = .clear
         labAnalytics.frame = CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 200)

@@ -50,7 +50,7 @@ class MLImageDetect: NSObject {
     
     public func detectImage(image:CGImage) {
         analyticsQueue.async {
-            let modelFile = VGG16()
+            let modelFile = Inceptionv3()
             let model = try! VNCoreMLModel(for: modelFile.model)
             //start
             let handle = VNImageRequestHandler(cgImage: image)
