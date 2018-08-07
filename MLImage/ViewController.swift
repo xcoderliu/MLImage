@@ -12,6 +12,7 @@ import SceneKit
 
 
 class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
+    let bubbleDepth : Float = 0.01 // the 'depth' of 3D text
     let arSCNView = ARSCNView()
     let arSession = ARSession()
     var sessionconfig = ARWorldTrackingConfiguration()
@@ -84,9 +85,11 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
             self.labAnalytics.text = foreTxt?.appending(content!)
         }
         imageTool.resultCallBack = {(result) ->() in
-            self.showText(content: result!)
-            self.resultNode = SCNNode()
-            self.labResult.text = result;
+            guard let resultstring = result else {
+                return
+            }
+            self.showText(content: resultstring)
+            self.labResult.text = result
         }
     }
     
@@ -104,7 +107,7 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
         if let closestResult = arHitTestResults.first { //取得坐标系
             // Get Coordinates of HitTest
             let transform : matrix_float4x4 = closestResult.worldTransform
-            pos = SCNVector3Make(transform.columns.3.x - 0.2, transform.columns.3.y - 0.88, transform.columns.3.z - 0.2)
+            pos = SCNVector3Make(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z )
             labAnalytics.text = "获取特征值成功开始检测"
             showText(content: "...")
             imageTool.detectImage(image: arSCNView.snapshot().cgImage!)
@@ -114,18 +117,48 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
         
     }
     
-    func showText(content:String) {
+    func createNewBubbleParentNode(_ text : String) -> SCNNode {
+        // Warning: Creating 3D Text is susceptible to crashing. To reduce chances of crashing; reduce number of polygons, letters, smoothness, etc.
+        
+        // TEXT BILLBOARD CONSTRAINT
         let billboardConstraint = SCNBillboardConstraint()
         billboardConstraint.freeAxes = SCNBillboardAxis.Y
-        self.resultNode.removeFromParentNode()
-        let resultText = SCNText(string: content, extrusionDepth: 0.01)
-        resultText.alignmentMode = kCAAlignmentCenter;
-        resultText.font = UIFont.systemFont(ofSize:0.05)
-        resultText.firstMaterial?.diffuse.contents = UIColor.blue
-        resultText.firstMaterial?.specular.contents = UIColor.white
-        resultText.firstMaterial?.isDoubleSided = true
-        self.resultNode = SCNNode(geometry: resultText)
-        self.resultNode.constraints = [billboardConstraint]
+        
+        // BUBBLE-TEXT
+        let bubble = SCNText(string: text, extrusionDepth: CGFloat(bubbleDepth))
+        let font = UIFont(name: "Futura", size: 0.15)
+        bubble.font = font
+        bubble.alignmentMode = kCAAlignmentCenter
+        bubble.firstMaterial?.diffuse.contents = UIColor.green
+        bubble.firstMaterial?.specular.contents = UIColor.white
+        bubble.firstMaterial?.isDoubleSided = true
+        // bubble.flatness // setting this too low can cause crashes.
+        bubble.chamferRadius = CGFloat(bubbleDepth)
+        
+        // BUBBLE NODE
+        let (minBound, maxBound) = bubble.boundingBox
+        let bubbleNode = SCNNode(geometry: bubble)
+        // Centre Node - to Centre-Bottom point
+        bubbleNode.pivot = SCNMatrix4MakeTranslation( (maxBound.x - minBound.x)/2, minBound.y, bubbleDepth/2)
+        // Reduce default text size
+        bubbleNode.scale = SCNVector3Make(0.2, 0.2, 0.2)
+        
+        // CENTRE POINT NODE
+        let sphere = SCNSphere(radius: 0.005)
+        sphere.firstMaterial?.diffuse.contents = UIColor.cyan
+        let sphereNode = SCNNode(geometry: sphere)
+        
+        // BUBBLE PARENT NODE
+        let bubbleNodeParent = SCNNode()
+        bubbleNodeParent.addChildNode(bubbleNode)
+        bubbleNodeParent.addChildNode(sphereNode)
+        bubbleNodeParent.constraints = [billboardConstraint]
+        
+        return bubbleNodeParent
+    }
+
+    func showText(content:String) {
+        self.resultNode = createNewBubbleParentNode(content)
         self.arSCNView.scene.rootNode.addChildNode(self.resultNode)
         resultNode.position = pos;
     }
@@ -134,7 +167,7 @@ class ViewController: UIViewController,ARSCNViewDelegate,ARSessionDelegate {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
+    
 
 }
 
